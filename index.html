@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reading Tracker – Advanced</title>
+  <style>
+    /* Color system (light/dark refined) */
+    :root {
+      --bg:#ffffff; --fg:#111827; --muted:#6b7280;
+      --surface:#ffffff; --card:#f8fafc;
+      --accent:#2563eb; --accent-weak:#e7efff;
+      --success:#10b981; --success-weak:#e9f7ef;
+      --warn:#f59e0b; --danger:#ef4444;
+      --border:#e5e7eb; --focus:#93c5fd;
+      --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.06);
+      --shadow-soft:0 1px 2px rgba(0,0,0,.05);
+    }
+    [data-theme="dark"]{
+      --bg:#0b0f14; --fg:#e5e7eb; --muted:#9ca3af;
+      --surface:#0e131a; --card:#10151c;
+      --accent:#60a5fa; --accent-weak:#132033;
+      --success:#34d399; --success-weak:#0f1f18;
+      --warn:#fbbf24; --danger:#f87171;
+      --border:#1f2a37; --focus:#93c5fd;
+      --shadow:none; --shadow-soft:none;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--fg)}
+    button,input,select,.card{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .15s ease,box-shadow .2s ease}
+    :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:8px}
+
+    header{
+      position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;justify-content:space-between;
+      padding:12px 16px;border-bottom:1px solid var(--border);
+      background:color-mix(in oklab,var(--surface) 88%,transparent);
+      backdrop-filter:saturate(160%) blur(6px);
+    }
+    h1{font-size:18px;margin:0}
+    .header-right{display:flex;align-items:center;gap:10px}
+    .theme-toggle,.small{cursor:pointer;border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--fg)}
+    .container{max-width:1100px;margin:16px auto 40px;padding:0 16px}
+
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+    .toolbar .input{padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--fg)}
+    .btn{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow-soft)}
+    .btn.secondary{background:transparent;color:var(--fg);border:1px solid var(--border)}
+    .btn.danger{background:var(--danger)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn:hover:not(:disabled){filter:brightness(1.03);transform:translateY(-1px)}
+    .btn:active:not(:disabled){transform:translateY(0)}
+
+    .section-title{font-size:15px;margin:16px 0 8px;color:var(--muted)}
+
+    /* Header stats mini ring */
+    .ring{width:36px;height:36px;border-radius:50%;background:
+      conic-gradient(var(--success) var(--ring,0%), rgba(127,127,127,.2) 0);
+      display:grid;place-items:center;border:1px solid var(--border)}
+    .ring span{font-size:10px;color:var(--fg)}
+
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:900px){.split{grid-template-columns:1fr}}
+
+    .results{display:grid;gap:10px}
+    .result{display:flex;gap:12px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--card);align-items:center;box-shadow:var(--shadow-soft)}
+    .result img{width:50px;height:75px;object-fit:cover;border-radius:8px}
+    .result .title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .result .meta{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .skeleton{background:linear-gradient(90deg,rgba(150,150,150,.06),rgba(150,150,150,.12),rgba(150,150,150,.06));background-size:200% 100%;animation:shimmer 1.2s infinite}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .result-skel{display:flex;gap:12px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+    .thumb-skel{width:50px;height:75px;border-radius:8px}
+    .text-skel{flex:1;display:grid;gap:8px;align-content:center}
+    .line{height:10px;border-radius:6px}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+    .card{border:1px solid var(--border);border-radius:14px;background:var(--card);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+    .card:hover{transform:translateY(-2px)}
+    .card .media{width:100%;height:210px;display:flex;align-items:center;justify-content:center;background:var(--accent-weak)}
+    .card .media img{max-width:100%;max-height:100%;object-fit:contain}
+    .card .body{padding:12px;display:flex;flex-direction:column;gap:10px}
+    .title{font-weight:600;font-size:16px;line-height:1.25;max-height:2.6em;overflow:hidden}
+    .meta{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .row{display:flex;align-items:center;gap:10px}
+    .row label{min-width:80px;color:var(--muted);font-size:12px}
+    .row input[type=number], .row select{width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--fg)}
+    .row .count{font-size:12px;color:var(--muted)}
+
+    /* Slider with filled track */
+    .row input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:999px;background:linear-gradient(to right,var(--accent) var(--fill,0%),rgba(127,127,127,.25) var(--fill,0%))}
+    .row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--accent);cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+    [data-theme=dark] .row input[type=range]::-webkit-slider-thumb{background:var(--surface)}
+
+    /* Badges */
+    .badge{font-size:12px;background:var(--accent-weak);color:var(--accent);padding:4px 8px;border-radius:999px;transition:background-color .25s ease,color .25s ease,transform .15s ease}
+    .badge.bump{transform:scale(1.06)}
+    .badge.low{background:rgba(127,127,127,.12);color:var(--muted)}
+    .badge.mid{background:var(--accent-weak);color:var(--accent)}
+    .badge.high{background:var(--success-weak);color:var(--success)}
+    .chip{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    .empty{border:1px dashed var(--border);padding:24px;border-radius:12px;text-align:center;color:var(--muted)}
+
+    /* Tabs */
+    .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px;flex-wrap:wrap}
+    .tab{padding:8px 10px;border-radius:8px 8px 0 0;border:1px solid transparent;cursor:pointer}
+    .tab.active{border-color:var(--border);border-bottom-color:transparent;background:var(--card)}
+
+    /* Toast */
+    .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface);color:var(--fg);border:1px solid var(--border);padding:10px 12px;border-radius:10px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+    .toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-4px)}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1>Reading Tracker</h1>
+      <div class="ring" id="dailyRing" title="Daily goal progress"><span id="dailyRingTxt">0%</span></div>
+      <span class="chip" id="streakChip" title="Reading streak">🔥 0-day streak</span>
+    </div>
+    <div class="header-right">
+      <button id="exportBtn" class="small">Export CSV</button>
+      <label class="small" for="importFile">Import CSV</label>
+      <input id="importFile" type="file" accept=".csv" style="display:none" />
+      <button id="notifyBtn" class="small">Enable Reminder</button>
+      <button id="themeBtn" class="theme-toggle">Toggle Theme</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="toolbar">
+      <input id="searchInput" class="input" placeholder="Search by title, author, or ISBN..." />
+      <button id="searchBtn" class="btn">Search</button>
+      <select id="statusFilter" class="input">
+        <option value="all">All</option>
+        <option value="reading">Currently reading</option>
+        <option value="toread">To read</option>
+        <option value="finished">Finished</option>
+      </select>
+      <input id="dailyGoal" class="input" type="number" min="5" step="5" style="width:140px" placeholder="Daily goal (min)" />
+      <button id="saveGoal" class="btn secondary">Save Goal</button>
+      <input id="remindTime" class="input" type="time" style="width:130px" />
+      <button id="saveReminder" class="btn secondary">Save Reminder</button>
+    </div>
+
+    <div class="split">
+      <div>
+        <div class="section-title">Search books</div>
+        <div id="results" class="results"></div>
+      </div>
+      <div>
+        <div class="section-title">Your library</div>
+        <div id="library" class="grid"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <div class="section-title">Stats</div>
+      <div id="statsArea" class="grid"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Storage helpers
+    const ls = {
+      get(k, fb){ try{ return JSON.parse(localStorage.getItem(k)) ?? fb }catch{ return fb } },
+      set(k, v){ localStorage.setItem(k, JSON.stringify(v)) }
+    };
+
+    // Initial theme from system
+    const firstVisitTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+    // State
+    const state = {
+      settings: ls.get('settings', {
+        theme:firstVisitTheme,
+        dailyGoalMin:30,
+        reminderTime: null,   // "HH:MM"
+        notifications: false
+      }),
+      library: ls.get('library', []), // books
+      sessions: ls.get('sessions', []), // {id, bookId, start, end, pagesDelta}
+      notes: ls.get('notes', {}), // { [bookId]: [ {id,timestamp,page,text} ] }
+      searching:false,
+      debounce:null,
+      filter:'all'
+    };
+
+    // Elements
+    const el = {
+      themeBtn: document.getElementById('themeBtn'),
+      searchInput: document.getElementById('searchInput'),
+      searchBtn: document.getElementById('searchBtn'),
+      results: document.getElementById('results'),
+      library: document.getElementById('library'),
+      toast: document.getElementById('toast'),
+      statusFilter: document.getElementById('statusFilter'),
+      statsArea: document.getElementById('statsArea'),
+      dailyGoal: document.getElementById('dailyGoal'),
+      saveGoal: document.getElementById('saveGoal'),
+      dailyRing: document.getElementById('dailyRing'),
+      dailyRingTxt: document.getElementById('dailyRingTxt'),
+      streakChip: document.getElementById('streakChip'),
+      notifyBtn: document.getElementById('notifyBtn'),
+      remindTime: document.getElementById('remindTime'),
+      saveReminder: document.getElementById('saveReminder'),
+      exportBtn: document.getElementById('exportBtn'),
+      importFile: document.getElementById('importFile'),
+    };
+
+    // Theme
+    document.documentElement.setAttribute('data-theme', state.settings.theme);
+    el.themeBtn.addEventListener('click', ()=> {
+      state.settings.theme = state.settings.theme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', state.settings.theme);
+      saveAll();
+    });
+
+    // Save
+    function saveAll(){
+      ls.set('settings', state.settings);
+      ls.set('library', state.library);
+      ls.set('sessions', state.sessions);
+      ls.set('notes', state.notes);
+    }
+
+    // Toast
+    let toastTimer;
+    function toast(msg){
+      el.toast.textContent = msg;
+      el.toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> el.toast.classList.remove('show'), 2200);
+    }
+
+    // Utils
+    const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+    const fmtMin=(m)=>`${m}min`;
+    const todayKey=()=> new Date().toISOString().slice(0,10);
+    function percent(b){
+      if(!b.totalPages || b.totalPages<=0) return 0;
+      return clamp(Math.floor((b.currentPage/b.totalPages)*100),0,100);
+    }
+    function pctClass(p){ if(p<25)return'low'; if(p<75)return'mid'; return'high' }
+    function updateSliderFill(slider,current,max){
+      const p = max>0 ? Math.round((current/max)*100) : 0;
+      slider.style.setProperty('--fill', p+'%');
+    }
+    function bumpBadge(badge,newPct){
+      const prev = parseInt(badge.getAttribute('data-p')||'0',10);
+      badge.setAttribute('data-p', String(newPct));
+      badge.textContent = `${newPct}%`;
+      badge.classList.remove('low','mid','high');
+      badge.classList.add(pctClass(newPct));
+      if(newPct!==prev){
+        badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump');
+        setTimeout(()=>badge.classList.remove('bump'),160);
+      }
+    }
+
+    // Daily goal + streaks
+    function computeTodayMinutes(){
+      const tk = todayKey();
+      let total=0;
+      for(const s of state.sessions){
+        if(!s.end) continue;
+        const d = new Date(s.start).toISOString().slice(0,10);
+        if(d===tk){
+          const mins = Math.max(0, Math.round((new Date(s.end)-new Date(s.start))/60000));
+          total += mins;
+        }
+      }
+      return total;
+    }
+    function computeStreak(){
+      // Count consecutive days from today going backward that have any minutes
+      let streak=0;
+      let day = new Date();
+      for(;;){
+        const key = day.toISOString().slice(0,10);
+        const has = state.sessions.some(s=> s.end && new Date(s.start).toISOString().slice(0,10)===key);
+        if(has){ streak++; day.setDate(day.getDate()-1); } else break;
+      }
+      return streak;
+    }
+    function refreshHeaderGoal(){
+      const mins = computeTodayMinutes();
+      const goal = state.settings.dailyGoalMin||0;
+      const pct = goal>0 ? clamp(Math.round(mins/goal*100),0,100) : 0;
+      el.dailyRing.style.setProperty('--ring', pct+'%');
+      el.dailyRingTxt.textContent = `${pct}%`;
+      el.streakChip.textContent = `🔥 ${computeStreak()}-day streak`;
+    }
+
+    // Reminder notifications (simple local check on interactions)
+    async function ensureNotificationPermission(){
+      if(!('Notification' in window)) { toast('Notifications not supported'); return false; }
+      if(Notification.permission==='granted') return true;
+      if(Notification.permission==='denied'){ toast('Notifications blocked in browser'); return false; }
+      const res = await Notification.requestPermission();
+      return res==='granted';
+    }
+    el.notifyBtn.addEventListener('click', async ()=>{
+      const ok = await ensureNotificationPermission();
+      if(ok){ state.settings.notifications=true; saveAll(); toast('Notifications enabled'); }
+    });
+    el.saveReminder.addEventListener('click', ()=>{
+      const t = el.remindTime.value || null;
+      state.settings.reminderTime = t;
+      saveAll();
+      toast(t?`Reminder set for ${t}`:'Reminder cleared');
+    });
+    function checkAndFireReminder(){
+      if(!state.settings.notifications || !state.settings.reminderTime) return;
+      const now = new Date();
+      const [hh,mm] = state.settings.reminderTime.split(':').map(x=>parseInt(x,10));
+      if(now.getHours()===hh && now.getMinutes()===mm){
+        // Only fire once per minute; a naive throttle with sessionStorage flag
+        const key = 'reminder-fired-'+todayKey()+'-'+hh+mm;
+        if(sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key,'1');
+        new Notification('Time to read', { body:'A few pages now keeps your streak alive!' });
+      }
+    }
+    setInterval(checkAndFireReminder, 30*1000); // poll every 30s while app is open
+
+    // Search (Google Books)
+    function showSkeletons(n=5){
+      el.results.innerHTML='';
+      for(let i=0;i<n;i++){
+        const r=document.createElement('div');
+        r.className='result-skel';
+        r.innerHTML = `
+          <div class="thumb-skel skeleton"></div>
+          <div class="text-skel"><div class="line skeleton" style="width:60%"></div><div class="line skeleton" style="width:40%"></div></div>
+          <div style="width:70px;height:32px;border-radius:8px" class="skeleton"></div>
+        `;
+        el.results.appendChild(r);
+      }
+    }
+    async function searchBooks(q){
+      if(!q||!q.trim()){ el.results.innerHTML=''; return; }
+      try{
+        state.searching=true; el.searchBtn.disabled=true; el.searchBtn.textContent='Searching…';
+        showSkeletons(5);
+        // ISBN hint: if only digits or contains hyphens, use isbn query too
+        const isbnQuery = /^[0-9\-]+$/.test(q.trim()) ? `+isbn:${q.replace(/-/g,'')}` : '';
+        const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}${isbnQuery}&maxResults=10&printType=books`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const items = (data.items||[]).map(it=>{
+          const vi = it.volumeInfo||{};
+          const cover = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || '';
+          const authors = Array.isArray(vi.authors) ? vi.authors.join(', ') : (vi.authors||'');
+          const pageCount = Number.isFinite(vi.pageCount) ? vi.pageCount : null;
+          return { id: it.id, title: vi.title||'Untitled', authors, coverUrl:cover, pageCount };
+        });
+        renderResults(items);
+      }catch(e){
+        console.error(e);
+        el.results.innerHTML = '<div class="empty">Search failed. Please try again.</div>';
+      }finally{
+        state.searching=false; el.searchBtn.disabled=false; el.searchBtn.textContent='Search';
+      }
+    }
+    function debouncedSearch(){
+      clearTimeout(state.debounce);
+      state.debounce = setTimeout(()=>searchBooks(el.searchInput.value), 350);
+    }
+    el.searchBtn.addEventListener('click', ()=>searchBooks(el.searchInput.value));
+    el.searchInput.addEventListener('input', debouncedSearch);
+    el.searchInput.addEventListener('keydown', e=>{
+      if(e.key==='Enter') searchBooks(el.searchInput.value);
+      if(e.key==='Escape'){ el.searchInput.value=''; el.results.innerHTML=''; }
+    });
+
+    function renderResults(items){
+      el.results.innerHTML = '';
+      if(!items||items.length===0){ el.results.innerHTML='<div class="empty">No results</div>'; return; }
+      for(const book of items){
+        const div=document.createElement('div'); div.className='result';
+        const thumb = book.coverUrl ? `<img src="${book.coverUrl}" alt="cover" />`
+          : `<div style="width:50px;height:75px;border-radius:8px;background:var(--accent-weak)"></div>`;
+        div.innerHTML = `
+          ${thumb}
+          <div style="flex:1;min-width:0">
+            <div class="title" title="${book.title}">${book.title}</div>
+            <div class="meta" title="${book.authors||'Unknown author'}">${book.authors||'Unknown author'}</div>
+          </div>
+          <button class="btn secondary add-btn">Add</button>
+        `;
+        div.querySelector('.add-btn').addEventListener('click', ()=>{
+          let totalPages = (book.pageCount && book.pageCount>0) ? book.pageCount : null;
+          if(!totalPages){
+            let v = prompt('Enter total number of pages:');
+            if(v===null) return;
+            v = parseInt(v,10);
+            if(!Number.isFinite(v) || v<=0){ alert('Enter a valid positive number.'); return; }
+            totalPages = v;
+          }
+          const id = book.id || crypto.randomUUID();
+          const exists = state.library.some(b=>b.id===id);
+          const newBook = {
+            id: exists? crypto.randomUUID(): id,
+            title: book.title, authors: book.authors, coverUrl: book.coverUrl,
+            totalPages, currentPage: 0, addedAt: Date.now(),
+            status: 'toread', // new: status
+            paceSpm: null // derived pace (seconds per page)
+          };
+          state.library.unshift(newBook);
+          saveAll();
+          renderLibrary();
+          refreshStats();
+          toast('Book added');
+        });
+        el.results.appendChild(div);
+      }
+    }
+
+    // Library render with advanced controls
+    function renderLibrary(){
+      const filter = state.filter || 'all';
+      const books = state.library.filter(b => filter==='all' ? true : b.status===filter);
+      el.library.innerHTML = '';
+      if(books.length===0){ el.library.innerHTML = '<div class="empty">No books match the current filter.</div>'; return; }
+
+      for(const b of books){
+        const card = document.createElement('div'); card.className='card';
+        const p = percent(b);
+        const runningSession = getRunningSession(b.id);
+        card.innerHTML = `
+          <div class="media">${b.coverUrl? `<img src="${b.coverUrl}" alt="cover of ${b.title}" />` : '<div style="width:100%;height:100%"></div>'}</div>
+          <div class="body">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div style="min-width:0">
+                <div class="title" title="${b.title}">${b.title}</div>
+                <div class="meta" title="${b.authors||'Unknown author'}">${b.authors||'Unknown author'}</div>
+              </div>
+              <select class="status small" title="Status">
+                <option value="reading" ${b.status==='reading'?'selected':''}>Reading</option>
+                <option value="toread" ${b.status==='toread'?'selected':''}>To read</option>
+                <option value="finished" ${b.status==='finished'?'selected':''}>Finished</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label>Pages</label>
+              <input type="number" class="pages" min="1" value="${b.totalPages}" />
+              <span class="badge ${pctClass(p)}" data-p="${p}">${p}%</span>
+            </div>
+
+            <div class="row">
+              <label>Progress</label>
+              <input type="range" class="slider" min="0" max="${b.totalPages}" value="${b.currentPage}" />
+              <span class="count">${b.currentPage}/${b.totalPages}</span>
+            </div>
+
+            <div class="row">
+              <label>Session</label>
+              <button class="btn secondary startStop">${runningSession?'Stop':'Start'}</button>
+              <input type="number" class="pagesDelta input" min="0" placeholder="+pages" style="max-width:110px" />
+              <button class="btn secondary logBtn">Log</button>
+              <span class="chip" title="Average pace">${formatPace(b.paceSpm)||'—'}</span>
+            </div>
+
+            <div class="actions">
+              <button class="btn secondary noteBtn">Add Note</button>
+              <button class="btn secondary viewNotes">View Notes</button>
+              <button class="btn secondary reset">Reset</button>
+              <button class="btn secondary remove">Remove</button>
+            </div>
+          </div>
+        `;
+
+        // Hooks
+        const statusSel = card.querySelector('.status');
+        const pagesInput = card.querySelector('.pages');
+        const slider = card.querySelector('.slider');
+        const pct = card.querySelector('.badge');
+        const countSpan = card.querySelector('.count');
+        const startStopBtn = card.querySelector('.startStop');
+        const pagesDeltaInput = card.querySelector('.pagesDelta');
+        const logBtn = card.querySelector('.logBtn');
+        const noteBtn = card.querySelector('.noteBtn');
+        const viewNotesBtn = card.querySelector('.viewNotes');
+
+        // Init slider fill
+        updateSliderFill(slider, b.currentPage, b.totalPages);
+
+        statusSel.addEventListener('change',()=>{
+          b.status = statusSel.value;
+          // If finished, clamp progress to 100%
+          if(b.status==='finished'){ b.currentPage = b.totalPages; slider.value=b.currentPage; }
+          saveAll(); renderLibrary(); refreshStats();
+        });
+
+        pagesInput.addEventListener('change', ()=>{
+          let v = parseInt(pagesInput.value,10);
+          if(!Number.isFinite(v)||v<=0){ alert('Enter a valid positive page count.'); pagesInput.value=b.totalPages; return; }
+          b.totalPages=v;
+          if(b.currentPage>b.totalPages){ b.currentPage=b.totalPages; slider.value=b.currentPage; }
+          slider.max=b.totalPages;
+          bumpBadge(pct, percent(b));
+          countSpan.textContent = `${b.currentPage}/${b.totalPages}`;
+          updateSliderFill(slider, b.currentPage, b.totalPages);
+          saveAll(); refreshStats();
+        });
+
+        slider.addEventListener('input', ()=>{
+          b.currentPage = parseInt(slider.value,10);
+          bumpBadge(pct, percent(b));
+          countSpan.textContent = `${b.currentPage}/${b.totalPages}`;
+          updateSliderFill(slider, b.currentPage, b.totalPages);
+        });
+        slider.addEventListener('change', ()=>{
+          saveAll(); refreshStats();
+          toast('Progress saved');
+        });
+
+        startStopBtn.addEventListener('click', ()=>{
+          const run = getRunningSession(b.id);
+          if(run){
+            // Stop
+            run.end = new Date().toISOString();
+            // Optional: estimate pages by delta input if provided
+            let add = parseInt(pagesDeltaInput.value||'0',10);
+            if(Number.isFinite(add) && add>0){
+              run.pagesDelta = (run.pagesDelta||0)+add;
+              b.currentPage = clamp((b.currentPage||0)+add, 0, b.totalPages);
+              slider.value=b.currentPage;
+              bumpBadge(pct, percent(b));
+              countSpan.textContent = `${b.currentPage}/${b.totalPages}`;
+              updateSliderFill(slider, b.currentPage, b.totalPages);
+            }
+            derivePace(b.id); // update pace from sessions
+            saveAll(); refreshStats(); renderLibrary();
+            toast('Session stopped');
+          } else {
+            // Start
+            const s = { id: crypto.randomUUID(), bookId:b.id, start:new Date().toISOString(), end:null, pagesDelta:0 };
+            state.sessions.push(s);
+            saveAll(); renderLibrary();
+            toast('Session started');
+          }
+        });
+
+        logBtn.addEventListener('click', ()=>{
+          let add = parseInt(pagesDeltaInput.value||'0',10);
+          if(!Number.isFinite(add) || add<=0){ alert('Enter +pages read to log'); return; }
+          b.currentPage = clamp((b.currentPage||0)+add, 0, b.totalPages);
+          slider.value=b.currentPage;
+          bumpBadge(pct, percent(b));
+          countSpan.textContent = `${b.currentPage}/${b.totalPages}`;
+          updateSliderFill(slider, b.currentPage, b.totalPages);
+          // Attach to running session if exists
+          const run = getRunningSession(b.id);
+          if(run){ run.pagesDelta = (run.pagesDelta||0) + add; }
+          saveAll(); refreshStats();
+          pagesDeltaInput.value='';
+          toast('Pages logged');
+        });
+
+        card.querySelector('.reset').addEventListener('click', ()=>{
+          b.currentPage=0; slider.value=0; bumpBadge(pct,0);
+          countSpan.textContent=`0/${b.totalPages}`; updateSliderFill(slider,0,b.totalPages);
+          saveAll(); refreshStats();
+        });
+
+        card.querySelector('.remove').addEventListener('click', ()=>{
+          if(!confirm('Remove this book and its sessions/notes?')) return;
+          // Stop active
+          const run = getRunningSession(b.id);
+          if(run){ run.end = new Date().toISOString(); }
+          // Remove book
+          state.library = state.library.filter(x=>x.id!==b.id);
+          // Remove sessions/notes
+          state.sessions = state.sessions.filter(s=>s.bookId!==b.id);
+          delete state.notes[b.id];
+          saveAll(); renderLibrary(); refreshStats();
+          toast('Removed');
+        });
+
+        noteBtn.addEventListener('click', ()=>{
+          const text = prompt('Add note/highlight (optional: use @page e.g., "Great quote @123"):');
+          if(!text) return;
+          const pageMatch = text.match(/@(\d+)/);
+          const page = pageMatch ? parseInt(pageMatch[1],10) : null;
+          const clean = text.replace(/@\d+/,'').trim();
+          const note = { id: crypto.randomUUID(), timestamp:new Date().toISOString(), page, text:clean };
+          if(!state.notes[b.id]) state.notes[b.id]=[];
+          state.notes[b.id].unshift(note);
+          saveAll(); toast('Note saved');
+        });
+
+        viewNotesBtn.addEventListener('click', ()=>{
+          const arr = state.notes[b.id]||[];
+          if(arr.length===0){ alert('No notes yet.'); return; }
+          const lines = arr.slice(0,20).map(n=>{
+            const dt = new Date(n.timestamp).toLocaleString();
+            return `${dt}${n.page? ' @'+n.page:''}: ${n.text}`;
+          }).join('\n\n');
+          alert(lines);
+        });
+
+        el.library.appendChild(card);
+      }
+    }
+
+    function getRunningSession(bookId){
+      return state.sessions.find(s=>s.bookId===bookId && !s.end);
+    }
+    function derivePace(bookId){
+      // Compute average seconds-per-page for the book
+      const ses = state.sessions.filter(s=>s.bookId===bookId && s.end && (s.pagesDelta||0)>0);
+      if(ses.length===0) return;
+      let totalSec=0, totalPages=0;
+      for(const s of ses){
+        totalSec += Math.max(0, (new Date(s.end)-new Date(s.start))/1000);
+        totalPages += (s.pagesDelta||0);
+      }
+      const spm = totalPages>0? Math.round(totalSec/totalPages) : null;
+      const book = state.library.find(b=>b.id===bookId);
+      if(book) { book.paceSpm = spm; saveAll(); }
+    }
+    function formatPace(spm){
+      if(!spm) return null;
+      const m = Math.floor(spm/60), s = spm%60;
+      return `${m}m ${s}s/page`;
+    }
+
+    // Filter
+    el.statusFilter.addEventListener('change', ()=>{
+      state.filter = el.statusFilter.value; renderLibrary();
+    });
+
+    // Daily goal input load
+    el.dailyGoal.value = state.settings.dailyGoalMin || '';
+    el.remindTime.value = state.settings.reminderTime || '';
+    el.saveGoal.addEventListener('click', ()=>{
+      const v = parseInt(el.dailyGoal.value||'0',10);
+      if(!Number.isFinite(v) || v<=0){ alert('Enter a valid goal in minutes'); return; }
+      state.settings.dailyGoalMin = v; saveAll(); refreshHeaderGoal(); toast('Daily goal saved');
+    });
+
+    // Stats
+    function refreshStats(){
+      refreshHeaderGoal();
+      const byBook = computePerBookStats();
+      const global = computeGlobalStats();
+      renderStats(byBook, global);
+    }
+    function computePerBookStats(){
+      const map = {};
+      for(const b of state.library){
+        map[b.id] = { book:b, minutes:0, pages:0, sessions:0 };
+      }
+      for(const s of state.sessions){
+        if(!s.end) continue;
+        const mins = Math.max(0, Math.round((new Date(s.end)-new Date(s.start))/60000));
+        if(map[s.bookId]){
+          map[s.bookId].minutes += mins;
+          map[s.bookId].pages += (s.pagesDelta||0);
+          map[s.bookId].sessions += 1;
+        }
+      }
+      // derive pace if missing
+      for(const k in map){
+        const m = map[k];
+        if(m.book && !m.book.paceSpm && m.pages>0 && m.minutes>0){
+          m.book.paceSpm = Math.round((m.minutes*60)/m.pages);
+        }
+      }
+      saveAll();
+      return Object.values(map);
+    }
+    function computeGlobalStats(){
+      const now = new Date();
+      const weekStart = new Date(now); weekStart.setDate(now.getDate()-6); weekStart.setHours(0,0,0,0);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      let weekMin=0, weekPages=0, monthMin=0, monthPages=0;
+      for(const s of state.sessions){
+        if(!s.end) continue;
+        const end = new Date(s.end);
+        const mins = Math.max(0, Math.round((end - new Date(s.start))/60000));
+        const pages = (s.pagesDelta||0);
+        if(end>=weekStart){ weekMin+=mins; weekPages+=pages; }
+        if(end>=monthStart){ monthMin+=mins; monthPages+=pages; }
+      }
+      return { weekMin, weekPages, monthMin, monthPages };
+    }
+    function renderStats(byBook, global){
+      el.statsArea.innerHTML = '';
+      // Global card
+      const g = document.createElement('div'); g.className='card';
+      g.innerHTML = `
+        <div class="body">
+          <div class="title">Global stats</div>
+          <div class="row"><label>This week</label><div>${fmtMin(global.weekMin)} • ${global.weekPages} pages</div></div>
+          <div class="row"><label>This month</label><div>${fmtMin(global.monthMin)} • ${global.monthPages} pages</div></div>
+        </div>
+      `;
+      el.statsArea.appendChild(g);
+      // Per-book summary cards
+      for(const m of byBook){
+        const c = document.createElement('div'); c.className='card';
+        const pace = m.book.paceSpm? formatPace(m.book.paceSpm): '—';
+        c.innerHTML = `
+          <div class="body">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="title" title="${m.book.title}">${m.book.title}</div>
+              <span class="chip">${m.sessions} sessions</span>
+            </div>
+            <div class="row"><label>Time</label><div>${fmtMin(m.minutes)}</div></div>
+            <div class="row"><label>Pages</label><div>${m.pages}</div></div>
+            <div class="row"><label>Avg pace</label><div>${pace}</div></div>
+          </div>
+        `;
+        el.statsArea.appendChild(c);
+      }
+    }
+
+    // Export/Import CSV (library + sessions + notes flattened)
+    function toCSV(){
+      const rows = [];
+      rows.push(['type','id','bookId','title','authors','coverUrl','totalPages','currentPage','status','paceSpm','addedAt','start','end','pagesDelta','noteTimestamp','notePage','noteText'].join(','));
+      for(const b of state.library){
+        rows.push(['book', b.id, '', csv(b.title), csv(b.authors||''), csv(b.coverUrl||''), b.totalPages, b.currentPage, b.status||'', b.paceSpm||'', b.addedAt||'','','','','',''].join(','));
+      }
+      for(const s of state.sessions){
+        rows.push(['session', s.id, s.bookId, '', '', '', '', '', '', '', '', s.start, s.end||'', s.pagesDelta||'', '', '', ''].join(','));
+      }
+      for(const [bookId, arr] of Object.entries(state.notes||{})){
+        for(const n of arr){
+          rows.push(['note', n.id, bookId, '', '', '', '', '', '', '', '', '', '', '', n.timestamp, n.page||'', csv(n.text||'')].join(','));
+        }
+      }
+      return rows.join('\n');
+    }
+    function csv(v){
+      const s = String(v).replace(/"/g,'""');
+      return `"${s}"`;
+    }
+    function parseCSV(text){
+      // Simple CSV parser for this schema (quoted fields)
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const out = { books:[], sessions:[], notes:[] };
+      if(lines.length<=1) return out;
+      for(let i=1;i<lines.length;i++){
+        const cols = splitCSV(lines[i]);
+        const type = cols[0];
+        if(type==='book'){
+          out.books.push({
+            id: cols[21], title: uncsv(cols[22]), authors: uncsv(cols[23]), coverUrl: uncsv(cols[24]),
+            totalPages: parseInt(cols[25]||'0',10), currentPage: parseInt(cols[26]||'0',10),
+            status: cols[27]||'toread', paceSpm: cols[28]? parseInt(cols[28],10): null,
+            addedAt: cols[29]? parseInt(cols[29],10): Date.now()
+          });
+        } else if(type==='session'){
+          out.sessions.push({
+            id: cols[21], bookId: cols[30], start: cols[31], end: cols[32]||null, pagesDelta: cols[33]? parseInt(cols[33],10):0
+          });
+        } else if(type==='note'){
+          out.notes.push({
+            id: cols[21], bookId: cols[30], timestamp: cols[34], page: cols[35]? parseInt(cols[35],10): null, text: uncsv(cols[36]||'')
+          });
+        }
+      }
+      return out;
+    }
+    function splitCSV(line){
+      const out=[]; let cur=''; let inQ=false;
+      for(let i=0;i<line.length;i++){
+        const ch=line[i];
+        if(inQ){
+          if(ch==='"' && line[i+1]==='"'){ cur+='"'; i++; }
+          else if(ch=== '"'){ inQ=false; }
+          else cur+=ch;
+        }else{
+          if(ch===','){ out.push(cur); cur=''; }
+          else if(ch=== '"'){ inQ=true; }
+          else cur+=ch;
+        }
+      }
+      out.push(cur);
+      return out;
+    }
+    function uncsv(v){ return v?.replace(/^"/,'').replace(/"$/,'').replace(/""/g,'"') || '' }
+
+    el.exportBtn.addEventListener('click', ()=>{
+      const blob = new Blob([toCSV()], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='reading-tracker-export.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+    el.importFile.addEventListener('change', async ()=>{
+      const file = el.importFile.files[0];
+      if(!file) return;
+      const text = await file.text();
+      const parsed = parseCSV(text);
+      // Merge: keep existing, add new by ids (avoid conflicts)
+      const ids = new Set(state.library.map(b=>b.id));
+      for(const b of parsed.books){ if(ids.has(b.id)) b.id = crypto.randomUUID(); state.library.push(b); }
+      for(const s of parsed.sessions){ state.sessions.push(s); }
+      for(const n of parsed.notes){
+        if(!state.notes[n.bookId]) state.notes[n.bookId]=[];
+        state.notes[n.bookId].push({ id:n.id, timestamp:n.timestamp, page:n.page, text:n.text });
+      }
+      saveAll(); renderLibrary(); refreshStats();
+      toast('Import complete');
+      el.importFile.value='';
+    });
+
+    // Initial load
+    function initialUI(){
+      // ensure defaults
+      if(state.settings.dailyGoalMin==null) state.settings.dailyGoalMin=30;
+      saveAll();
+      // filter select reflects state
+      el.statusFilter.value = state.filter;
+      // search placeholder results skeleton
+      el.results.innerHTML = '<div class="empty">Search for a book to add</div>';
+      renderLibrary();
+      refreshStats();
+    }
+    initialUI();
+
+    // Also update header goal every minute
+    setInterval(refreshHeaderGoal, 60*1000);
+  </script>
+</body>
+</html>

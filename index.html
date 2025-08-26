@@ -148,11 +148,26 @@
       .row label { width: 100%; margin-bottom: 4px; }
       .row input[type=number], .row select { width: 100%; }
       
-      .actions { width: 100%; justify-content: space-between; }
-      .actions .btn { flex: 1; text-align: center; }
+      .actions { width: 100%; justify-content: space-between; display: flex; flex-wrap: wrap;}
+      .actions .btn { text-align: center; }
       
-      .result { flex-direction: column; text-align: center; }
-      .result > div { width: 100%; text-align: center; }
+      .result{
+        display: flex;
+        width: 100%;
+      }
+      .section-title
+      {
+        width: 70%;
+      }
+      .card
+      {
+        width: 100%;
+      }
+
+      .toolbar
+      {
+        width:100%;
+      }
     }
 
     /* Hide time input on very small screens */

@@ -6,8 +6,6 @@
   <title>Reading Tracker – Advanced</title>
   <style>
     /* Color system (light/dark refined) */
-
-    
     :root {
       --bg:#ffffff; --fg:#111827; --muted:#6b7280;
       --surface:#ffffff; --card:#f8fafc;
@@ -153,23 +151,8 @@
       .actions { width: 100%; justify-content: space-between; }
       .actions .btn { flex: 1; text-align: center; }
       
-      .result{
-        display: flex;
-        width: 70%;
-      }
-      .section-title
-      {
-        width: 80%;
-      }
-      .card
-      {
-        width: 70%;
-      }
-
-      .toolbar
-      {
-        width:100%;
-      }
+      .result { flex-direction: column; text-align: center; }
+      .result > div { width: 100%; text-align: center; }
     }
 
     /* Hide time input on very small screens */
